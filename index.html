@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRUTALTOOLS // V3.2 WITH PAGE NUMBERS</title>
+    
+    <!-- PDF-LIB Library -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+    <style>
+        /* --- THEME --- */
+        :root {
+            --bg: #050505;
+            --panel: #111;
+            --green: #00ff41;
+            --cyan: #00f3ff;
+            --red: #ff0055;
+            --text: #eee;
+            --border: 2px solid var(--green);
+            --font: 'Courier New', monospace;
+            --head: 'Arial Black', sans-serif;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+
+        body {
+            margin: 0;
+            font-family: var(--font);
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- BACKGROUND --- */
+        .bg-grid {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(0, 255, 65, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 65, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: -2;
+            animation: moveGrid 20s linear infinite;
+        }
+        @keyframes moveGrid { 0% { background-position: 0 0; } 100% { background-position: 30px 30px; } }
+
+        /* --- HEADER --- */
+        header {
+            background: var(--panel);
+            border-bottom: 2px solid var(--green);
+            padding: 0 30px;
+            height: 70px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .logo { font-family: var(--head); color: white; font-size: 1.5rem; text-transform: uppercase; }
+        .logo span { color: var(--green); }
+
+        /* --- LAYOUT --- */
+        .app-container { display: flex; flex: 1; overflow: hidden; }
+
+        /* --- SIDEBAR --- */
+        aside {
+            width: 260px; background: #080808; border-right: 1px solid #222; overflow-y: auto;
+        }
+        .nav-item {
+            padding: 15px 20px; color: #666; cursor: pointer; font-weight: bold;
+            display: flex; align-items: center; gap: 10px; border-left: 3px solid transparent; transition: 0.2s;
+        }
+        .nav-item:hover { background: #111; color: white; padding-left: 25px; }
+        .nav-item.active { background: rgba(0, 255, 65, 0.05); color: var(--green); border-left-color: var(--green); }
+
+        /* --- MAIN --- */
+        main { flex: 1; padding: 40px; overflow-y: auto; display: flex; justify-content: center; }
+        .tool-card {
+            background: rgba(17, 17, 17, 0.9); border: 1px solid #333; border-top: 3px solid var(--green);
+            padding: 30px; width: 100%; max-width: 700px;
+            display: none; animation: slideUp 0.3s;
+        }
+        .tool-card.active { display: block; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        h2 { margin: 0 0 10px 0; font-family: var(--head); color: white; }
+        .desc { color: #888; margin-bottom: 25px; font-size: 0.9rem; }
+
+        /* --- INPUTS --- */
+        input, select, textarea {
+            width: 100%; padding: 15px; background: #000; border: 1px solid #333; color: var(--green);
+            font-family: var(--font); font-size: 1rem; margin-bottom: 15px;
+        }
+        input:focus, select:focus { border-color: var(--green); }
+        label { display:block; color:#888; margin-bottom:5px; font-size:0.8rem; text-transform:uppercase; }
+
+        /* --- BUTTONS --- */
+        .btn {
+            width: 100%; padding: 15px; background: transparent; color: var(--green);
+            border: 2px solid var(--green); font-family: var(--head); font-size: 1.1rem;
+            cursor: pointer; text-transform: uppercase; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn:hover { background: var(--green); color: #000; box-shadow: 0 0 20px rgba(0,255,65,0.4); }
+        .btn.cyan { color: var(--cyan); border-color: var(--cyan); }
+        .btn.cyan:hover { background: var(--cyan); color: #000; box-shadow: 0 0 20px rgba(0,243,255,0.4); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* --- DROP ZONE --- */
+        .drop-zone {
+            border: 2px dashed #444; padding: 30px; text-align: center; margin-bottom: 20px;
+            cursor: pointer; transition: 0.3s; color: #666; background: rgba(255,255,255,0.02);
+        }
+        .drop-zone:hover { border-color: var(--green); color: var(--green); background: rgba(0, 255, 65, 0.05); }
+        .icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+
+        /* --- LIST --- */
+        .file-list { list-style: none; padding: 0; margin-bottom: 20px; }
+        .file-item {
+            background: #111; border: 1px solid #333; padding: 10px; margin-bottom: 5px;
+            display: flex; justify-content: space-between; color: white; font-size: 0.9rem;
+        }
+        .btn-x { color: var(--red); cursor: pointer; font-weight: bold; }
+
+        /* --- MODAL --- */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100;
+            display: none; align-items: center; justify-content: center;
+        }
+        .modal.visible { display: flex; }
+        .modal-box {
+            background: #111; border: 2px solid var(--green); padding: 40px; text-align: center; max-width: 400px;
+        }
+
+        /* --- LOADING --- */
+        .spinner {
+            width: 20px; height: 20px; border: 3px solid #000; border-top: 3px solid currentColor;
+            border-radius: 50%; animation: spin 1s linear infinite; display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; }
+            aside { width: 100%; height: 120px; overflow-x: auto; display: flex; flex-direction: row; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-grid"></div>
+
+    <header>
+        <div class="logo">BRUTAL<span>TOOLS</span></div>
+        <div style="font-size:0.8rem; color:#444;">V3.2</div>
+    </header>
+
+    <div class="app-container">
+        <aside>
+            <div class="nav-item active" onclick="loadTool('merge')">🔗 Merge PDF</div>
+            <div class="nav-item" onclick="loadTool('img2pdf')">🖼️ Images to PDF</div>
+            <div class="nav-item" onclick="loadTool('split')">✂️ Split PDF</div>
+            <div class="nav-item" onclick="loadTool('delete')">🗑️ Delete Pages</div>
+            <div class="nav-item" onclick="loadTool('rotate')">🔄 Rotate PDF</div>
+            <div class="nav-item" onclick="loadTool('reorder')">🔀 Reorder Pages</div>
+            <div class="nav-item" onclick="loadTool('pagenum')">#️⃣ Page Numbers</div> <!-- NEW TOOL -->
+            <div class="nav-item" onclick="loadTool('text2pdf')">📝 Text to PDF</div>
+            <div class="nav-item" onclick="loadTool('sign')">✍️ Sign PDF</div>
+            <div class="nav-item" onclick="loadTool('watermark')">💧 Watermark</div>
+            <div class="nav-item" onclick="loadTool('unlock')">🔓 Unlock PDF</div>
+            <div class="nav-item" onclick="loadTool('protect')">🔒 Protect PDF</div>
+        </aside>
+
+        <main>
+            
+            <!-- MERGE -->
+            <div id="tool-merge" class="tool-card active">
+                <h2>Merge PDF</h2>
+                <div class="desc">Combine multiple files.</div>
+                <div class="drop-zone" id="merge-drop">
+                    <span class="icon">📂</span>
+                    <b>Drop PDFs here</b>
+                    <input type="file" id="merge-input" multiple accept=".pdf" hidden>
+                </div>
+                <ul class="file-list" id="merge-list"></ul>
+                <button class="btn cyan" onclick="processMerge()">
+                    <div class="spinner" id="spin-merge"></div> MERGE
+                </button>
+            </div>
+
+            <!-- IMAGES TO PDF -->
+            <div id="tool-img2pdf" class="tool-card">
+                <h2>Images to PDF</h2>
+                <div class="desc">Convert JPG/PNG to PDF. Select multiple files!</div>
+                <div class="drop-zone" id="img-drop">
+                    <span class="icon">🖼️</span>
+                    <b>Drop Images here</b>
+                    <input type="file" id="img-input" multiple accept="image/*" hidden>
+                </div>
+                <ul class="file-list" id="img-list"></ul>
+                <button class="btn cyan" onclick="processImg2Pdf()">
+                    <div class="spinner" id="spin-img"></div> CONVERT TO PDF
+                </button>
+            </div>
+
+            <!-- SPLIT -->
+            <div id="tool-split" class="tool-card">
+                <h2>Split PDF</h2>
+                <div class="desc">Extract range.</div>
+                <div class="drop-zone" id="split-drop">
+                    <span class="icon">📄</span>
+                    <b>Drop PDF here</b>
+                    <input type="file" id="split-input" accept=".pdf" hidden>
+                </div>
+                <div id="split-ui" style="display:none;">
+                    <div class="file-item">
+                        <span id="split-fname">doc.pdf</span>
+                        <span class="btn-x" onclick="resetTool('split')">✕</span>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" id="split-start" placeholder="Start" min="1">
+                        <input type="number" id="split-end" placeholder="End" min="1">
+                    </div>
+                    <small id="split-info" style="color:var(--green); margin-bottom:10px; display:block;"></small>
+                    <button class="btn" id="btn-split" disabled onclick="processSplit()">EXTRACT</button>
+                </div>
+            </div>
+
+            <!-- DELETE -->
+            <div id="tool-delete" class="tool-card">
+                <h2>Delete Pages</h2>
+                <div class="desc">Remove pages (1, 3, 5-8).</div>
+                <div class="drop-zone" id="delete-drop">
+                    <span class="icon">🗑️</span>
+                    <b>Drop PDF here</b>
+                    <input type="file" id="delete-input" accept=".pdf" hidden>
+                </div>
+                <div id="delete-ui" style="display:none;">
+                    <div class="file-item">
+                        <span id="delete-fname">doc.pdf</span>
+                        <span class="btn-x" onclick="resetTool('delete')">✕</span>
+                    </div>
+                    <input type="text" id="delete-range" placeholder="e.g. 1, 3, 5-8">
+                    <small id="delete-info" style="color:var(--green); display:block; margin-top:-10px; margin-bottom:10px;"></small>
+                    <button class="btn" onclick="processDelete()">DELETE PAGES</button>
+                </div>
+            </div>
+
+            <!-- ROTATE -->
+            <div id="tool-rotate" class="tool-card">
+                <h2>Rotate PDF</h2>
+                <div class="desc">Rotate pages.</div>
+                <div class="drop-zone" id="rotate-drop">
+                    <span class="icon">🔄</span>
+                    <b>Drop PDF here</b>
+                    <input type="file" id="rotate-input" accept=".pdf" hidden>
+                </div>
+                <div id="rotate-ui" style="display:none;">
+                    <div class="file-item">
+                        <span id="rotate-fname">doc.pdf</span>
+                        <span class="btn-x" onclick="resetTool('rotate')">✕</span>
+                    </div>
+                    <select id="rotate-angle">
+                        <option value="90">90 Right</option>
+                        <option value="180">180</option>
+                        <option value="270">90 Left</option>
+                    </select>
+                    <button class="btn" onclick="processRotate()">ROTATE</button>
+                </div>
+            </div>
+
+            <!-- REORDER -->
+            <div id="tool-reorder" class="tool-card">
+                <h2>Reorder Pages</h2>
+                <div class="desc">Change order (e.g. 3, 1, 2).</div>
+                <div class="drop-zone" id="reorder-drop">
+                    <span class="icon">🔀</span>
+                    <b>Drop PDF here</b>
+                    <input type="file" id="reorder-input" accept=".pdf" hidden>
+                </div>
+                <div id="reorder-ui" style="display:none;">
+                    <div class="file-item">
+                        <span id="reorder-fname">doc.pdf</span>
+                        <span class="btn-x" onclick="resetTool('reorder')">✕</span>
+                    </div>
+                    <input type="text" id="reorder-seq" placeholder="New Order: 3, 1, 2">
+                    <small id="reorder-info" style="color:var(--green); display:block; margin-top:-10px; margin-bottom:10px;"></small>
+                    <button class="btn cyan" onclick="processReorder()">REORDER</button>
+                </div>
+            </div>
+
+            <!-- PAGE NUMBERS (NEW) -->
+            <div id="tool-pagenum" class="tool-card">
+                <h2>Page Numbers</h2>
+                <div class="desc">Add automatic page numbers.</div>
+                <div class="drop-zone" id="pn-drop">
+                    <span class="icon">#️⃣</span>
+                    <b>Drop PDF here</b>
+                    <input type="file" id="pn-input" accept=".pdf" hidden>
+                </div>
+                <div id="pn-ui" style="display:none;">
+                    <div class="file-item">
+                        <span id="pn-fname">doc.pdf</span>
+                        <span class="btn-x" onclick="resetTool('pagenum')">✕</span>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1">
+                            <label>Start Number</label>
+                            <input type="number" id="pn-start" value="1">
+                        </div>
+                        <div style="flex:1">
+                            <label>Font Size</label>
+                            <input type="number" id="pn-size" value="12">
+                        </div>
+                    </div>
+
+                    <label>Position</label>
+                    <select id="pn-pos">
+                        <option value="center">Bottom Center</option>
+                        <option value="left">Bottom Left</option>
+                        <option value="right">Bottom Right</option>
+                    </select>
+
+                    <button class="btn cyan" onclick="processPageNum()">ADD NUMBERS</button>
+                </div>
+            </div>
+
+            <!-- TEXT TO PDF -->
+            <div id="tool-text2pdf" class="tool-card">
+                <h2>Text to PDF</h2>
+                <div class="desc">Create PDF from text.</div>
+                <input type="text" id="text-name" placeholder="Filename" value="Document">
+                <textarea id="text-content" rows="8" placeholder="Type text..."></textarea>
+                <button class="btn" onclick="processText2Pdf()">GENERATE</button>
+            </div>
+
+            <!-- SIGN -->
+            <div id="tool-sign" class="tool-card">
+                <h2>Sign PDF</h2>
+                <div class="desc">Add signature image.</div>
+                <div class="drop-zone" id="sign-drop-pdf">
+                    <span class="icon">📄</span> 1. PDF <input type="file" id="sign-pdf" accept=".pdf" hidden>
+                </div>
+                <div class="drop-zone" id="sign-drop-img">
+                    <span class="icon">✍️</span> 2. Signature Img <input type="file" id="sign-img" accept="image/*" hidden>
+                </div>
+                <div id="sign-ui" style="display:none;">
+                    <div class="file-item">
+                        <span id="sign-fname">doc.pdf</span>
+                        <span class="btn-x" onclick="resetTool('sign')">✕</span>
+                    </div>
+                    <button class="btn" onclick="processSign()">APPLY SIGNATURE</button>
+                </div>
+            </div>
+
+            <!-- WATERMARK -->
+            <div id="tool-watermark" class="tool-card">
+                <h2>Watermark</h2>
+                <div class="desc">Stamp text.</div>
+                <div class="drop-zone" id="wm-drop">
+                    <span class="icon">💧</span>
+                    <b>Drop PDF here</b>
+                    <input type="file" id="wm-input" accept=".pdf" hidden>
+                </div>
+                <div id="wm-ui" style="display:none;">
+                    <div class="file-item">
+                        <span id="wm-fname">doc.pdf</span>
+                        <span class="btn-x" onclick="resetTool('watermark')">✕</span>
+                    </div>
+                    <input type="text" id="wm-text" value="CONFIDENTIAL">
+                    <button class="btn" onclick="processWatermark()">ADD WATERMARK</button>
+                </div>
+            </div>
+
+            <!-- UNLOCK -->
+            <div id="tool-unlock" class="tool-card">
+                <h2>Unlock PDF</h2>
+                <div class="desc">Remove password.</div>
+                <div class="drop-zone" id="unlock-drop">
+                    <span class="icon">🔓</span>
+                    <b>Drop PDF here</b>
+                    <input type="file" id="unlock-input" accept=".pdf" hidden>
+                </div>
+                <div id="unlock-ui" style="display:none;">
+                    <div class="file-item">
+                        <span id="unlock-fname">doc.pdf</span>
+                        <span class="btn-x" onclick="resetTool('unlock')">✕</span>
+                    </div>
+                    <input type="password" id="unlock-pass" placeholder="Password">
+                    <button class="btn cyan" onclick="processUnlock()">UNLOCK</button>
+                </div>
+            </div>
+
+            <!-- PROTECT -->
+            <div id="tool-protect" class="tool-card">
+                <h2>Protect PDF</h2>
+                <div class="desc">Add password.</div>
+                <div class="drop-zone" id="protect-drop">
+                    <span class="icon">🔒</span>
+                    <b>Drop PDF here</b>
+                    <input type="file" id="protect-input" accept=".pdf" hidden>
+                </div>
+                <div id="protect-ui" style="display:none;">
+                    <div class="file-item">
+                        <span id="protect-fname">doc.pdf</span>
+                        <span class="btn-x" onclick="resetTool('protect')">✕</span>
+                    </div>
+                    <input type="password" id="protect-pass" placeholder="New Password">
+                    <button class="btn" onclick="processProtect()">ENCRYPT</button>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- RESULT MODAL -->
+    <div class="modal" id="dl-modal">
+        <div class="modal-box">
+            <span style="font-size:3rem; color:var(--green)">✓</span>
+            <h2 style="color:white">READY</h2>
+            <p id="dl-filename" style="color:#888; margin-bottom:20px;">file.pdf</p>
+            <button class="btn cyan" id="btn-dl">DOWNLOAD FILE</button>
+            <br><br>
+            <button class="btn" style="border:none; color:#666; font-size:0.8rem" onclick="document.getElementById('dl-modal').classList.remove('visible')">CLOSE</button>
+        </div>
+    </div>
+
+    <script>
+        const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
+
+        let files = {};
+        let resultBuffer = null;
+        let resultName = "output.pdf";
+
+        /* --- NATIVE DOWNLOAD FIX --- */
+        function downloadPDF(buffer, filename) {
+            const blob = new Blob([buffer], { type: 'application/pdf' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        /* --- NAVIGATION --- */
+        function loadTool(id) {
+            document.querySelectorAll('.tool-card').forEach(c => c.classList.remove('active'));
+            document.getElementById(`tool-${id}`).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById('dl-modal').classList.remove('visible');
+        }
+
+        function showResult(buffer, filename) {
+            resultBuffer = buffer;
+            resultName = filename;
+            document.getElementById('dl-filename').innerText = filename;
+            document.getElementById('dl-modal').classList.add('visible');
+            
+            // Use native download
+            document.getElementById('btn-dl').onclick = () => {
+                downloadPDF(buffer, filename);
+            };
+        }
+
+        /* --- DROP HANDLERS --- */
+        function setupSingleDrop(dropId, inputId, toolName, callback) {
+            const zone = document.getElementById(dropId);
+            const input = document.getElementById(inputId);
+            zone.onclick = () => input.click();
+            zone.ondragover = e => { e.preventDefault(); zone.classList.add('dragover'); };
+            zone.ondragleave = () => zone.classList.remove('dragover');
+            zone.ondrop = e => {
+                e.preventDefault(); zone.classList.remove('dragover');
+                if(e.dataTransfer.files.length) callback(e.dataTransfer.files[0]);
+            };
+            input.onchange = () => { if(input.files.length) callback(input.files[0]); };
+        }
+
+        // SPECIFIC HANDLERS FOR MULTIPLE FILES (FIXED)
+        function setupMultipleDrop(dropId, inputId, toolName) {
+            const zone = document.getElementById(dropId);
+            const input = document.getElementById(inputId);
+            if(!files[toolName]) files[toolName] = [];
+            
+            zone.onclick = () => input.click();
+            zone.ondragover = e => { e.preventDefault(); zone.classList.add('dragover'); };
+            zone.ondragleave = () => zone.classList.remove('dragover');
+            
+            zone.ondrop = e => {
+                e.preventDefault(); zone.classList.remove('dragover');
+                Array.from(e.dataTransfer.files).forEach(f => {
+                    if(f.type === 'application/pdf' || f.type.startsWith('image/')) {
+                        files[toolName].push(f);
+                    }
+                });
+                renderList(toolName);
+            };
+            input.onchange = () => {
+                Array.from(input.files).forEach(f => {
+                    if(f.type === 'application/pdf' || f.type.startsWith('image/')) {
+                        files[toolName].push(f);
+                    }
+                });
+                renderList(toolName);
+            };
+        }
+
+        function resetTool(tool) {
+            files[tool] = null;
+            document.getElementById(`${tool}-ui`).style.display = 'none';
+            document.getElementById(`${tool}-drop`).style.display = 'block';
+            document.getElementById(`${tool}-input`).value = '';
+            if(document.getElementById(`${tool}-img`)) document.getElementById(`${tool}-img`).parentElement.style.display = 'block';
+        }
+
+        function renderList(tool) {
+            const list = document.getElementById(`${tool}-list`);
+            list.innerHTML = '';
+            files[tool].forEach((f, i) => {
+                list.innerHTML += `<li class="file-item"><span>${i+1}. ${f.name}</span><span class="btn-x" onclick="files['${tool}'].splice(${i},1); renderList('${tool}')">✕</span></li>`;
+            });
+        }
+
+        /* --- TOOLS --- */
+
+        // 1. MERGE
+        setupMultipleDrop('merge-drop', 'merge-input', 'merge');
+        async function processMerge() {
+            if(!files.merge || files.merge.length < 2) return alert("Need 2+ files");
+            toggleSpin('spin-merge', true);
+            try {
+                const merged = await PDFDocument.create();
+                for(let f of files.merge) {
+                    const bytes = await f.arrayBuffer();
+                    const pdf = await PDFDocument.load(bytes);
+                    const pages = await merged.copyPages(pdf, pdf.getPageIndices());
+                    pages.forEach(p => merged.addPage(p));
+                }
+                showResult(await merged.save(), "merged.pdf");
+            } catch(e) { alert(e.message); }
+            toggleSpin('spin-merge', false);
+        }
+
+        // 2. IMAGES TO PDF
+        setupMultipleDrop('img-drop', 'img-input', 'img');
+        async function processImg2Pdf() {
+            if(!files.img || files.img.length === 0) return alert("Add images first");
+            toggleSpin('spin-img', true);
+            try {
+                const pdf = await PDFDocument.create();
+                for(let f of files.img) {
+                    const imgBytes = await f.arrayBuffer();
+                    let img;
+                    if(f.type === 'image/jpeg') img = await pdf.embedJpg(imgBytes);
+                    else if(f.type === 'image/png') img = await pdf.embedPng(imgBytes);
+                    else continue;
+
+                    const page = pdf.addPage();
+                    const { width, height } = img.scale(1);
+                    const pageW = page.getWidth();
+                    const pageH = page.getHeight();
+                    const scale = Math.min(pageW / width, pageH / height);
+                    
+                    page.drawImage(img, {
+                        x: (pageW - (width*scale)) / 2,
+                        y: (pageH - (height*scale)) / 2,
+                        width: width * scale,
+                        height: height * scale,
+                    });
+                }
+                showResult(await pdf.save(), "images.pdf");
+            } catch(e) { alert(e.message); }
+            toggleSpin('spin-img', false);
+        }
+
+        // 3. SPLIT
+        setupSingleDrop('split-drop', 'split-input', 'split', async (f) => {
+            files.split = f;
+            const pdf = await PDFDocument.load(await f.arrayBuffer());
+            document.getElementById('split-info').innerText = `Pages: ${pdf.getPageCount()}`;
+            document.getElementById('split-fname').innerText = f.name;
+            document.getElementById('split-ui').style.display = 'block';
+            document.getElementById('split-drop').style.display = 'none';
+            document.getElementById('btn-split').disabled = false;
+        });
+        async function processSplit() {
+            const start = parseInt(document.getElementById('split-start').value) - 1;
+            const end = parseInt(document.getElementById('split-end').value) - 1;
+            if(start < 0 || end < start) return alert("Invalid range");
+            toggleSpin('spin-merge', true); 
+            try {
+                const src = await PDFDocument.load(await files.split.arrayBuffer());
+                const newDoc = await PDFDocument.create();
+                const pages = await newDoc.copyPages(src, Array.from({length: end-start+1}, (_, i) => start+i));
+                pages.forEach(p => newDoc.addPage(p));
+                showResult(await newDoc.save(), `split-${files.split.name}`);
+            } catch(e) { alert(e); }
+            toggleSpin('spin-merge', false);
+        }
+
+        // 4. DELETE
+        setupSingleDrop('delete-drop', 'delete-input', 'delete', async (f) => {
+            files.delete = f;
+            const pdf = await PDFDocument.load(await f.arrayBuffer());
+            document.getElementById('delete-info').innerText = `Pages: ${pdf.getPageCount()}`;
+            document.getElementById('delete-fname').innerText = f.name;
+            document.getElementById('delete-ui').style.display = 'block';
+            document.getElementById('delete-drop').style.display = 'none';
+        });
+        async function processDelete() {
+            const range = document.getElementById('delete-range').value;
+            if(!range) return alert("Enter pages");
+            toggleSpin('spin-merge', true);
+            try {
+                const toDelete = new Set();
+                range.split(',').forEach(p => {
+                    if(p.includes('-')) { let [s,e] = p.split('-').map(n => parseInt(n)); for(let i=s; i<=e; i++) toDelete.add(i-1); }
+                    else toDelete.add(parseInt(p)-1);
+                });
+                const src = await PDFDocument.load(await files.delete.arrayBuffer());
+                const keep = [];
+                for(let i=0; i<src.getPageCount(); i++) if(!toDelete.has(i)) keep.push(i);
+                const newDoc = await PDFDocument.create();
+                const pages = await newDoc.copyPages(src, keep);
+                pages.forEach(p => newDoc.addPage(p));
+                showResult(await newDoc.save(), `deleted-${files.delete.name}`);
+            } catch(e) { alert(e); }
+            toggleSpin('spin-merge', false);
+        }
+
+        // 5. ROTATE
+        setupSingleDrop('rotate-drop', 'rotate-input', 'rotate', (f) => {
+            files.rotate = f;
+            document.getElementById('rotate-fname').innerText = f.name;
+            document.getElementById('rotate-ui').style.display = 'block';
+            document.getElementById('rotate-drop').style.display = 'none';
+        });
+        async function processRotate() {
+            toggleSpin('spin-merge', true);
+            try {
+                const angle = parseInt(document.getElementById('rotate-angle').value);
+                const pdf = await PDFDocument.load(await files.rotate.arrayBuffer());
+                pdf.getPages().forEach(p => p.setRotation(degrees(angle)));
+                showResult(await pdf.save(), `rotated-${files.rotate.name}`);
+            } catch(e) { alert(e); }
+            toggleSpin('spin-merge', false);
+        }
+
+        // 6. REORDER
+        setupSingleDrop('reorder-drop', 'reorder-input', 'reorder', async (f) => {
+            files.reorder = f;
+            const pdf = await PDFDocument.load(await f.arrayBuffer());
+            document.getElementById('reorder-info').innerText = `Pages: ${pdf.getPageCount()}`;
+            document.getElementById('reorder-fname').innerText = f.name;
+            document.getElementById('reorder-ui').style.display = 'block';
+            document.getElementById('reorder-drop').style.display = 'none';
+        });
+        async function processReorder() {
+            const seq = document.getElementById('reorder-seq').value.split(',').map(n => parseInt(n.trim())-1);
+            if(!seq) return alert("Enter order");
+            toggleSpin('spin-merge', true);
+            try {
+                const src = await PDFDocument.load(await files.reorder.arrayBuffer());
+                const newDoc = await PDFDocument.create();
+                const pages = await newDoc.copyPages(src, seq);
+                pages.forEach(p => newDoc.addPage(p));
+                showResult(await newDoc.save(), `reordered-${files.reorder.name}`);
+            } catch(e) { alert(e); }
+            toggleSpin('spin-merge', false);
+        }
+
+        // 7. PAGE NUMBERS (NEW)
+        setupSingleDrop('pn-drop', 'pn-input', 'pagenum', (f) => {
+            files.pagenum = f;
+            document.getElementById('pn-fname').innerText = f.name;
+            document.getElementById('pn-ui').style.display = 'block';
+            document.getElementById('pn-drop').style.display = 'none';
+        });
+        async function processPageNum() {
+            const startNum = parseInt(document.getElementById('pn-start').value) || 1;
+            const size = parseInt(document.getElementById('pn-size').value) || 12;
+            const pos = document.getElementById('pn-pos').value;
+            
+            toggleSpin('spin-merge', true);
+            try {
+                const pdf = await PDFDocument.load(await files.pagenum.arrayBuffer());
+                const font = await pdf.embedFont(StandardFonts.Helvetica);
+                const pages = pdf.getPages();
+
+                pages.forEach((page, i) => {
+                    const { width, height } = page.getSize();
+                    const text = `Page ${startNum + i}`;
+                    const textWidth = font.widthOfTextAtSize(text, size);
+                    
+                    let x = 50; // Default left
+                    if(pos === 'center') x = (width / 2) - (textWidth / 2);
+                    if(pos === 'right') x = width - textWidth - 50;
+
+                    page.drawText(text, {
+                        x: x,
+                        y: 20 + size, // Bottom margin
+                        size: size,
+                        font: font,
+                        color: rgb(0, 0, 0),
+                    });
+                });
+
+                showResult(await pdf.save(), `numbered-${files.pagenum.name}`);
+            } catch(e) { alert(e); }
+            toggleSpin('spin-merge', false);
+        }
+
+        // 8. TEXT TO PDF
+        async function processText2Pdf() {
+            const text = document.getElementById('text-content').value;
+            const name = document.getElementById('text-name').value || "doc";
+            if(!text) return alert("Enter text");
+            toggleSpin('spin-merge', true);
+            try {
+                const pdf = await PDFDocument.create();
+                const font = await pdf.embedFont(StandardFonts.Helvetica);
+                const page = pdf.addPage();
+                const { width, height } = page.getSize();
+                page.drawText(text, { x: 50, y: height - 50, size: 12, font: font, maxWidth: width - 100, lineHeight: 15 });
+                showResult(await pdf.save(), `${name}.pdf`);
+            } catch(e) { alert(e); }
+            toggleSpin('spin-merge', false);
+        }
+
+        // 9. SIGN
+        files.sign = {};
+        setupSingleDrop('sign-drop-pdf', 'sign-pdf', 'sign', (f) => { files.sign.pdf = f; checkSign(); });
+        setupSingleDrop('sign-drop-img', 'sign-img', 'sign', (f) => { files.sign.img = f; checkSign(); });
+        function checkSign() {
+            if(files.sign.pdf && files.sign.img) {
+                document.getElementById('sign-fname').innerText = files.sign.pdf.name;
+                document.getElementById('sign-ui').style.display = 'block';
+                document.getElementById('sign-drop-pdf').style.display = 'none';
+                document.getElementById('sign-drop-img').style.display = 'none';
+            }
+        }
+        async function processSign() {
+            toggleSpin('spin-merge', true);
+            try {
+                const pdf = await PDFDocument.load(await files.sign.pdf.arrayBuffer());
+                const imgBytes = await files.sign.img.arrayBuffer();
+                let img = files.sign.img.type === 'image/jpeg' ? await pdf.embedJpg(imgBytes) : await pdf.embedPng(imgBytes);
+                const page = pdf.getPages()[pdf.getPageCount()-1];
+                const { width, height } = page.getSize();
+                const s = img.scale(0.5);
+                page.drawImage(img, { x: width - s.width - 20, y: 20, width: s.width, height: s.height });
+                showResult(await pdf.save(), `signed-${files.sign.pdf.name}`);
+            } catch(e) { alert(e); }
+            toggleSpin('spin-merge', false);
+        }
+
+        // 10. WATERMARK
+        setupSingleDrop('wm-drop', 'wm-input', 'watermark', (f) => {
+            files.wm = f;
+            document.getElementById('wm-fname').innerText = f.name;
+            document.getElementById('wm-ui').style.display = 'block';
+            document.getElementById('wm-drop').style.display = 'none';
+        });
+        async function processWatermark() {
+            const text = document.getElementById('wm-text').value;
+            toggleSpin('spin-merge', true);
+            try {
+                const pdf = await PDFDocument.load(await files.wm.arrayBuffer());
+                const helvetica = await pdf.embedFont(StandardFonts.HelveticaBold);
+                pdf.getPages().forEach(p => {
+                    const { width, height } = p.getSize();
+                    p.drawText(text, { x: width/2 - 100, y: height/2, size: 50, font: helvetica, color: rgb(1,0,0), opacity: 0.5, rotate: degrees(45) });
+                });
+                showResult(await pdf.save(), "watermarked.pdf");
+            } catch(e) { alert(e); }
+            toggleSpin('spin-merge', false);
+        }
+
+        // 11. UNLOCK
+        setupSingleDrop('unlock-drop', 'unlock-input', 'unlock', (f) => {
+            files.unlock = f;
+            document.getElementById('unlock-fname').innerText = f.name;
+            document.getElementById('unlock-ui').style.display = 'block';
+            document.getElementById('unlock-drop').style.display = 'none';
+        });
+        async function processUnlock() {
+            const pass = document.getElementById('unlock-pass').value;
+            if(!pass) return alert("Enter password");
+            toggleSpin('spin-merge', true);
+            try {
+                const pdf = await PDFDocument.load(await files.unlock.arrayBuffer(), { password: pass });
+                showResult(await pdf.save(), `unlocked-${files.unlock.name}`);
+            } catch(e) { alert("Wrong password or error"); }
+            toggleSpin('spin-merge', false);
+        }
+
+        // 12. PROTECT
+        setupSingleDrop('protect-drop', 'protect-input', 'protect', (f) => {
+            files.protect = f;
+            document.getElementById('protect-fname').innerText = f.name;
+            document.getElementById('protect-ui').style.display = 'block';
+            document.getElementById('protect-drop').style.display = 'none';
+        });
+        async function processProtect() {
+            const pass = document.getElementById('protect-pass').value;
+            if(!pass) return alert("Enter password");
+            toggleSpin('spin-merge', true);
+            try {
+                const pdf = await PDFDocument.load(await files.protect.arrayBuffer());
+                await pdf.encrypt({ userPassword: pass, ownerPassword: pass, permissions: { printing: 'highResolution' } });
+                showResult(await pdf.save(), "protected.pdf");
+            } catch(e) { alert(e); }
+            toggleSpin('spin-merge', false);
+        }
+
+        function toggleSpin(id, active) {
+            document.getElementById(id).style.display = active ? 'inline-block' : 'none';
+        }
+
+    </script>
+</body>
+</html>
