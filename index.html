@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BRUTALTOOLS // V3.2 WITH PAGE NUMBERS</title>
+    <title>BRUTALTOOLS // V3.3 FIXED PAGENUMS</title>
     
     <!-- PDF-LIB Library -->
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -149,7 +149,7 @@
 
     <header>
         <div class="logo">BRUTAL<span>TOOLS</span></div>
-        <div style="font-size:0.8rem; color:#444;">V3.2</div>
+        <div style="font-size:0.8rem; color:#444;">V3.3</div>
     </header>
 
     <div class="app-container">
@@ -160,7 +160,7 @@
             <div class="nav-item" onclick="loadTool('delete')">🗑️ Delete Pages</div>
             <div class="nav-item" onclick="loadTool('rotate')">🔄 Rotate PDF</div>
             <div class="nav-item" onclick="loadTool('reorder')">🔀 Reorder Pages</div>
-            <div class="nav-item" onclick="loadTool('pagenum')">#️⃣ Page Numbers</div> <!-- NEW TOOL -->
+            <div class="nav-item" onclick="loadTool('pagenum')">#️⃣ Page Numbers</div>
             <div class="nav-item" onclick="loadTool('text2pdf')">📝 Text to PDF</div>
             <div class="nav-item" onclick="loadTool('sign')">✍️ Sign PDF</div>
             <div class="nav-item" onclick="loadTool('watermark')">💧 Watermark</div>
@@ -286,10 +286,10 @@
                 </div>
             </div>
 
-            <!-- PAGE NUMBERS (NEW) -->
+            <!-- PAGE NUMBERS (FIXED) -->
             <div id="tool-pagenum" class="tool-card">
                 <h2>Page Numbers</h2>
-                <div class="desc">Add automatic page numbers.</div>
+                <div class="desc">Add automatic page numbers with white background for visibility.</div>
                 <div class="drop-zone" id="pn-drop">
                     <span class="icon">#️⃣</span>
                     <b>Drop PDF here</b>
@@ -455,11 +455,7 @@
             resultName = filename;
             document.getElementById('dl-filename').innerText = filename;
             document.getElementById('dl-modal').classList.add('visible');
-            
-            // Use native download
-            document.getElementById('btn-dl').onclick = () => {
-                downloadPDF(buffer, filename);
-            };
+            document.getElementById('btn-dl').onclick = () => downloadPDF(buffer, filename);
         }
 
         /* --- DROP HANDLERS --- */
@@ -476,7 +472,6 @@
             input.onchange = () => { if(input.files.length) callback(input.files[0]); };
         }
 
-        // SPECIFIC HANDLERS FOR MULTIPLE FILES (FIXED)
         function setupMultipleDrop(dropId, inputId, toolName) {
             const zone = document.getElementById(dropId);
             const input = document.getElementById(inputId);
@@ -669,7 +664,7 @@
             toggleSpin('spin-merge', false);
         }
 
-        // 7. PAGE NUMBERS (NEW)
+        // 7. PAGE NUMBERS (FIXED)
         setupSingleDrop('pn-drop', 'pn-input', 'pagenum', (f) => {
             files.pagenum = f;
             document.getElementById('pn-fname').innerText = f.name;
@@ -690,16 +685,35 @@
                 pages.forEach((page, i) => {
                     const { width, height } = page.getSize();
                     const text = `Page ${startNum + i}`;
-                    const textWidth = font.widthOfTextAtSize(text, size);
+                    const textSize = size; 
                     
-                    let x = 50; // Default left
+                    // Calculate Width
+                    const textWidth = font.widthOfTextAtSize(text, textSize);
+                    
+                    let x = 0;
+                    const margin = 50; // Side margin
+                    
+                    if(pos === 'left') x = margin;
                     if(pos === 'center') x = (width / 2) - (textWidth / 2);
-                    if(pos === 'right') x = width - textWidth - 50;
+                    if(pos === 'right') x = width - textWidth - margin;
 
+                    // Fixed Y position (40 units from bottom)
+                    const y = 40; 
+
+                    // Draw White Background Box for Visibility
+                    page.drawRectangle({
+                        x: x - 5,
+                        y: y - 5, 
+                        width: textWidth + 10,
+                        height: textSize + 10,
+                        color: rgb(1, 1, 1),
+                    });
+
+                    // Draw Text
                     page.drawText(text, {
                         x: x,
-                        y: 20 + size, // Bottom margin
-                        size: size,
+                        y: y,
+                        size: textSize,
                         font: font,
                         color: rgb(0, 0, 0),
                     });
