@@ -1,4 +1,4 @@
- <div align="Right"
+ <div align="Left"
 
 
 IT IS A FREE 💜 PDF EDITING TOOL
